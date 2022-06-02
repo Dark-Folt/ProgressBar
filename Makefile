@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -O
-LDFLAGS=
+LDFLAGS=-lcurl
 EXEC=prog
 
 all: $(EXEC) 
