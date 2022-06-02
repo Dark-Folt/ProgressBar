@@ -10,11 +10,16 @@ const int PROG_BAR_LENGTH = 30;
 
 typedef struct {
     long total_bytes;
+    long total_expected;
+    double exp_bytes_per_url;
+    long current_bytes;
+    long urls_so_far;
+    long total_urls;
 } statusinfo;
 
 
 void
-update_bar (int percent_done)
+update_bar (int percent_done, statusinfo *sinfo)
 {
     int i;
     int num_char = percent_done * PROG_BAR_LENGTH / 100;
@@ -26,13 +31,18 @@ update_bar (int percent_done)
     for (i = 0; i < PROG_BAR_LENGTH - num_char; i++) {
         printf (" ");
     }
-    printf("] %d%% Done", percent_done);
+    printf("] %d%% Done (%ld MB)", percent_done, sinfo->total_bytes / 1000000);
     fflush(stdout);
 }
 
 size_t
 got_data (char *buffer, size_t itemsize, size_t numitems, void *stinfo) {
-    return NULL;
+    statusinfo *status = stinfo;
+    size_t bytes = itemsize * numitems;
+
+    status->total_bytes += bytes;
+    update_bar (percent_done, status);
+    return bytes;
 }
 
 bool
@@ -57,17 +67,23 @@ download_url (char *url, statusinfo *sinfo)
     return  (CURLE_OK == result);
 }
 
-int main(void)
+int
+main(void)
 {
     char *urls[] = {
         "https://docs.phpdoc.org/3.0/packages/phpDocumentor-AST.html",
         "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-11.3.0-amd64-netinst.iso"
     };
 
+    const uint8_t nb_urls = SIZE_ARR (urls);
+    statusinfo sinfo;
+    sinfo.total_bytes = 0;
+
+    update_bar (0, &sinfo);
     int i;
-    for(i=0; i <= 100; i++) {
-        update_bar(i);
-        usleep(20000);
+    for(i=0; i < nb_urls; i++) {
+        download_url (urls[i], &sinfo);
+        update_bar ((i+1)*100 / nb_urls, &sinfo);
     }
     printf ("\n");
     return 0;
